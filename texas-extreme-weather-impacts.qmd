@@ -38,9 +38,9 @@ houses <- read_sf(here::here("data/gis_osm_buildings_a_free_1.gpkg"))
 
 Initial exploration of the NASA Worldview data
 ```{r}
-noaa_map1 <- tm_shape(nasa1) +
-  tm_raster( )
-
-noaa_map1
+# noaa_map1 <- tm_shape(nasa1) +
+#   tm_raster( )
+# 
+# noaa_map1
 ```
 
