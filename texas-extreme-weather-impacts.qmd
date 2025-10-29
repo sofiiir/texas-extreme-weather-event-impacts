@@ -158,9 +158,12 @@ texas <- st_transform(texas, crs = st_crs(nasa1_0207))
 # Merge data for the entirety of the days 
 ```{r}
 st_bbox(nasa1_0207)
-
+st_bbox(nasa2_0207)
+st_bbox(nasa3_0216)
+st_bbox(nasa4_0216)
 
 nasa_0207 <- c(nasa1_0207, nasa2_0207, along = 'x')
+nasa_0216 <- c(nasa3_0216, nasa4_0216, along = 'x')
 
 ```
 
