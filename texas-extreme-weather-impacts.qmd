@@ -157,22 +157,28 @@ texas <- st_transform(texas, crs = st_crs(nasa1_0207))
 
 # Merge data for the entirety of the days 
 ```{r}
+# Check the bbox
 st_bbox(nasa1_0207)
 st_bbox(nasa2_0207)
 st_bbox(nasa3_0216)
 st_bbox(nasa4_0216)
 
+# combine the data
 nasa_0207 <- c(nasa1_0207, nasa2_0207, along = 'x')
 nasa_0216 <- c(nasa3_0216, nasa4_0216, along = 'x')
 
 ```
-
-
-Initial exploration of the NASA Worldview data
+### Find the change in night lights intensity (presumably) caused by the storm
 ```{r}
-# noaa_map1 <- tm_shape(nasa1) +
-#   tm_raster( )
-# 
-# noaa_map1
+# blackout data 
+blackout <- nasa_0207 - nasa_0216
+
+# difference between the two dates boolean
+diff_light <- (nasa_0207 - nasa_0216) > 200
+```
+
+#### Reclassify the difference raster, assuming that any location that experienced a drop of more than 200 nW cm-2sr-1 experienced a blackout
+```{r}
+# set anything in the boolean equal to false 
 ```
 
