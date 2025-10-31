@@ -210,7 +210,7 @@ plot(light_0207)
 
 ```{r}
 tm_shape(blackout) + 
-  tm_shape() + 
+  tm_polygons() + 
   tm_shape(light_0207) +
   tm_raster(breaks = c(0, 1000, 2000, 3000, 4000, 5000))
 ```
@@ -219,9 +219,16 @@ plot(nasa_0216)
 ```
 ```{r}
 tm_shape(blackout) + 
-  tm_shape() + 
+  tm_polygons() + 
   tm_shape(light_0216) +
   tm_raster(breaks = c(0, 8000, 12000, 16000, 20000, 24000, 30000))
+
+```
+# Exclude highways from the cropped blackout mask
+```{r}
+# look at the units for the highways
+st_crs(roads$unit)
+# identify areas within 200m of all highways
 
 ```
 
