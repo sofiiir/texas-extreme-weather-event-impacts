@@ -163,22 +163,51 @@ st_bbox(nasa2_0207)
 st_bbox(nasa3_0216)
 st_bbox(nasa4_0216)
 
-# combine the data
-nasa_0207 <- c(nasa1_0207, nasa2_0207, along = 'x')
-nasa_0216 <- c(nasa3_0216, nasa4_0216, along = 'x')
+# combine the data with st_mosaic since data has different extents
+nasa_0207 <- st_mosaic(nasa1_0207, nasa2_0207)
+nasa_0216 <- st_mosaic(nasa3_0216, nasa4_0216)
 
 ```
 ### Find the change in night lights intensity (presumably) caused by the storm
 ```{r}
 # blackout data 
-blackout <- nasa_0207 - nasa_0216
+blackout <- nasa_0207 - nasa_0216 
 
 # difference between the two dates boolean
 diff_light <- (nasa_0207 - nasa_0216) > 200
+
+# assign na based on where the value is false for the boolean
+# (diff_light == FALSE) <- NA
 ```
 
-#### Reclassify the difference raster, assuming that any location that experienced a drop of more than 200 nW cm-2sr-1 experienced a blackout
 ```{r}
-# set anything in the boolean equal to false 
+blackout[blackout < 200 ] <- NA
+```
+
+```{r}
+# WHY CANT I JUST SUBSET LIKE THIS
+diff_light[diff_light == FALSE] <- NA
+```
+
+# vectorize the blackout mask
+```{r}
+blackout <- blackout |> 
+  st_as_sf() 
+# st_make_valid() if anything is invalid
+```
+
+```{r}
+unique(st_is_valid(blackout))
+```
+
+crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates:
+(-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
+```{r}
+# st_bbox are not layers they are type bbox so we need to use st_as_sf to vectorize it
+# use st_bbox
+crop_bbox <- c(-96.5, 29, -94.5, 30.5)
+st_crop()
+
+# then st_intersects() then st_transform
 ```
 
