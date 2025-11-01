@@ -67,6 +67,8 @@ texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), l
 ```
 
 ## Check CRS for all of the data
+
+
 #### Making sure the CRS are the same for all of the datasets
 Set the CRS to equal each other in a boolean to make sure they are all the same
 ```{r}
@@ -196,27 +198,34 @@ st_crop(blackout, st_bbox(crop_bbox))
 ### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
 ```{r}
 # st_transform
-blackout |> 
+blackout_nad <- blackout |> 
   st_transform(crs=st_crs('NAD83'))
 ```
+Since we'll be plotting with both blackout data and the original light data, the crs for the light data must also be changed.
+```{r}
+light_0207_nad <- st_transform(light_0207, crs = st_crs('NAD83'))
+light_0216_nad <- st_transform(light_0207, crs = st_crs('NAD83'))
+```
+
+
 Plot light for February 07, 2021
 ```{r}
-plot(light_0207)
+plot(light_0207_nad)
 ```
 
 ```{r}
 tm_shape(blackout) + 
   tm_polygons() + 
-  tm_shape(light_0207) +
+  tm_shape(light_0207_nad) +
   tm_raster(breaks = c(0, 1000, 2000, 3000, 4000, 5000))
 ```
 ```{r}
-plot(light_0216)
+plot(light_0216_nad)
 ```
 ```{r}
 tm_shape(blackout) + 
   tm_polygons() + 
-  tm_shape(light_0216) +
+  tm_shape(light_0216_nad) +
   tm_raster(breaks = c(0, 8000, 12000, 16000, 20000, 24000, 30000))
 
 ```
@@ -225,28 +234,48 @@ tm_shape(blackout) +
 # Exclude highways from the cropped blackout mask
 ```{r}
 # look at the units for the highways
-# st_crs(highways, parameters = TRUE)$units_gdal
+st_crs(highways, parameters = TRUE)$units_gdal
+highways <- st_transform(highways, crs = st_crs('EPSG:3857'))
+st_crs(highways, parameters = TRUE)$units_gdal
 
 # identify areas within 200m of all highways
-highway_buffer <- st_buffer(highways, 200)
+highway_buffer <- st_buffer(highways, dist = 200)
 
 ```
 
 ```{r}
 # WHY WOULD I WANT TO ST_UNION?
-#exc_highway <- st_union(highway_buffer)
+# ALL OF MY VALUES BECOME INVALID WHEN I USE st_union
+# combine geometry of highway buffer
+exc_highway <- st_union(highway_buffer)
 ```
 
 ```{r}
+# make sure geometry is valid 
 unique(st_is_valid(exc_highway))
-st_make_valid(exc_highway)
-
 ```
 
 
 ```{r}
-st_difference(blackout, highway_buffer)
+# crs must be the same for st_difference to work
+# change crs of blackout data
+blackout <- st_transform(blackout, crs = st_crs('EPSG:3857'))
+
+true_blackout <- st_difference(blackout, exc_highway)
 ```
+# Identify the number of homes likely impacted by blackouts
+```{r}
+# change crs to match
+homes <- st_transform(houses, crs = st_crs('EPSG:3857'))
+                         
+blackedout_homes <- st_within(true_blackout, homes)
+```
+
+```{r}
+tm_shape(true_blackout) +
+  tm_polygons()
+```
+
 
 # Refrences
 ```{r}
