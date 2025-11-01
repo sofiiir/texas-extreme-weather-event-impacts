@@ -35,7 +35,7 @@ Road data in Texas is necessary to take account of light pollution that comes fr
 road_query <- "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'"
 
 # read in road data
-roads <- st_read(here::here("data/gis_osm_roads_free_1.gpkg"), query = road_query)
+highways <- st_read(here::here("data/gis_osm_roads_free_1.gpkg"), query = road_query)
 
 ```
 Part of this analysis will quantify the number of houses that experienced blackouts.
@@ -67,44 +67,6 @@ texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), l
 ```
 
 ## Check CRS for all of the data
-```{r}
-#| output: false
-
-st_crs(light1_0207)
-```
-```{r}
-#| output: false
-
-st_crs(light2_0207)
-```
-```{r}
-#| output: false
-
-st_crs(light3_0216)
-```
-```{r}
-#| output: false
-
-st_crs(light4_0216)
-```
-
-```{r}
-#| output: false
-
-st_crs(houses)
-```
-```{r}
-#| output: false
-
-st_crs(roads)
-```
-```{r}
-#| output: false
-
-# check crs texas
-st_crs(texas)
-```
-
 #### Making sure the CRS are the same for all of the datasets
 Set the CRS to equal each other in a boolean to make sure they are all the same
 ```{r}
@@ -145,10 +107,32 @@ if (st_crs(light1_0207)==st_crs(texas)){
 }else {
     warning("still not a match")
 }
+
+if (st_crs(light1_0207)==st_crs(texas_income)){
+  print("it's a match!")
+}else {
+    warning("still not a match")
+}
 ```
+Make a for loop that checks that all of the CRS match for all of the data. 
+```{r}
+
+# WHY IS IT RUNNING SO MANY TIMES? HOW CAN I RUN STARS THROUGH THIS FOR LOOP?
+df_name <- c(highways, houses)
+
+for (i in seq_along(df_name)){
+  
+  if (st_crs(light1_0207)==st_crs(df_name)){
+  print("it's a match!")
+}else {
+    warning("still not a match")
+}
+}
+```
+
 #### Change CRS for texas
 ```{r}
-# change crs of texas
+# change crs of texas and texas income
 texas <- st_transform(texas, crs = st_crs(light1_0207))
 ```
 
@@ -159,6 +143,13 @@ texas <- st_transform(texas, crs = st_crs(light1_0207))
 light_0207 <- st_mosaic(light1_0207, light2_0207)
 light_0216 <- st_mosaic(light3_0216, light4_0216)
 ```
+### Combine Texas geometry with socioeconomic data
+```{r}
+# left_joining since we do not need all of the information in the texas df
+texas_socioeconomics <- left_join(texas_income, texas, by = "GEOID")
+```
+
+# Create blackout mask
 ### Find the change in night lights intensity (presumably) caused by the storm
 ```{r}
 # difference between the two dates boolean
@@ -176,20 +167,25 @@ blackout <- light_0207 - light_0216
 blackout[blackout < 200 ] <- NA
 ```
 
-# vectorize the blackout mask
+### vectorize the blackout mask
 ```{r}
 blackout <- blackout |> 
   st_as_sf() 
 # st_make_valid() if anything is invalid
 ```
 
+### Check if there are any gemetries that are invalid
 ```{r}
 # check if any of the geometries are invalid
 unique(st_is_valid(blackout))
 ```
 
-Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates:
-(-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
+Look at the type of geometries
+```{r}
+st_geometry(blackout)
+```
+
+### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
 ```{r}
 # st_bbox are not layers they are type bbox so we need to use st_as_sf to vectorize it
 # use st_bbox
@@ -197,7 +193,7 @@ crop_bbox <- c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5)
 st_crop(blackout, st_bbox(crop_bbox))
 ```
 
-Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
+### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
 ```{r}
 # st_transform
 blackout |> 
@@ -215,7 +211,7 @@ tm_shape(blackout) +
   tm_raster(breaks = c(0, 1000, 2000, 3000, 4000, 5000))
 ```
 ```{r}
-plot(nasa_0216)
+plot(light_0216)
 ```
 ```{r}
 tm_shape(blackout) + 
@@ -224,11 +220,36 @@ tm_shape(blackout) +
   tm_raster(breaks = c(0, 8000, 12000, 16000, 20000, 24000, 30000))
 
 ```
+
+
 # Exclude highways from the cropped blackout mask
 ```{r}
 # look at the units for the highways
-st_crs(roads$unit)
+# st_crs(highways, parameters = TRUE)$units_gdal
+
 # identify areas within 200m of all highways
+highway_buffer <- st_buffer(highways, 200)
+
+```
+
+```{r}
+# WHY WOULD I WANT TO ST_UNION?
+#exc_highway <- st_union(highway_buffer)
+```
+
+```{r}
+unique(st_is_valid(exc_highway))
+st_make_valid(exc_highway)
+
+```
+
+
+```{r}
+st_difference(blackout, highway_buffer)
+```
+
+# Refrences
+```{r}
 
 ```
 
