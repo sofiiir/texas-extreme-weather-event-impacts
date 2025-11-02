@@ -58,6 +58,8 @@ st_layers(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
 ```
 Read in the socioeconomic data 
 ```{r}
+#| output: false
+
 # socioeconomic geometry data read in
 texas <- st_read(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), layer = "ACS_2019_5YR_TRACT_48_TEXAS")
 
@@ -98,7 +100,7 @@ if (st_crs(light1_0207)==st_crs(houses)){
     warning("still not a match")
 }
 
-if (st_crs(light1_0207)==st_crs(roads)){
+if (st_crs(light1_0207)==st_crs(highways)){
   print("it's a match!")
 }else {
     warning("still not a match")
@@ -151,6 +153,80 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 texas_socioeconomics <- left_join(texas_income, texas, by = "GEOID")
 ```
 
+# Create original maps 
+
+### vectorize the light data
+```{r}
+# light_0207 <- light_0207 |> 
+#   st_as_sf() 
+# 
+# light_0216 <- light_0216 |> 
+#   st_as_sf()
+
+# st_make_valid() if anything is invalid
+```
+
+### Check if there are any gemetries that are invalid
+```{r}
+# check if any of the geometries are invalid
+# unique(st_is_valid(light_0207))
+# unique(st_is_valid(light_0216))
+```
+
+### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
+```{r}
+# st_bbox are not layers they are type bbox so we need to use st_as_sf to vectorize it
+# use st_bbox
+crop_bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(light_0207))
+```
+
+
+```{r}
+# crop light data on 02/07
+light_0207 <- st_crop(light_0207, crop_bbox)
+
+# crop light data on 02/16
+light_0216 <- st_crop(light_0216, crop_bbox)
+```
+Plot light for February 07, 2021
+```{r}
+plot(light_0207)
+```
+
+```{r}
+lum_0207 <- tm_shape(light_0207) +
+  tm_raster(palette = c('black', 
+                        '#58544C',
+                        'darkgrey', 
+                        'grey', 
+                        'lightgrey', 
+                        'white'),
+            breaks = c(0, 400, 800, 1200, 2400, 4800, 10000),
+            title = "Luminence nW cm-2sr-1") +
+  tm_title("Pre-Blackout Houston Luminence Map February 7, 2021")
+```
+
+
+```{r}
+plot(light_0216)
+```
+
+```{r}
+lum_0216 <- tm_shape(light_0216) +
+  tm_raster(palette = c('black', 
+                        '#58544C',
+                        'darkgrey', 
+                        'grey', 
+                        'lightgrey',
+                        'white'),
+            breaks = c(0, 300, 800, 1500, 3000, 6000, 20000),
+            title = "Luminence nW cm-2sr-1") +
+  tm_title("Houston Luminence Map for Blackout February 16, 2021")
+```
+```{r}
+tmap_arrange(lum_0207, lum_0216)
+```
+
 # Create blackout mask
 ### Find the change in night lights intensity (presumably) caused by the storm
 ```{r}
@@ -171,29 +247,17 @@ blackout[blackout < 200 ] <- NA
 
 ### vectorize the blackout mask
 ```{r}
-blackout <- blackout |> 
-  st_as_sf() 
+# blackout <- blackout |> 
+#   st_as_sf() 
 # st_make_valid() if anything is invalid
 ```
 
 ### Check if there are any gemetries that are invalid
 ```{r}
 # check if any of the geometries are invalid
-unique(st_is_valid(blackout))
+# unique(st_is_valid(blackout))
 ```
 
-Look at the type of geometries
-```{r}
-st_geometry(blackout)
-```
-
-### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
-```{r}
-# st_bbox are not layers they are type bbox so we need to use st_as_sf to vectorize it
-# use st_bbox
-crop_bbox <- c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5)
-st_crop(blackout, st_bbox(crop_bbox))
-```
 
 ### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
 ```{r}
@@ -201,32 +265,19 @@ st_crop(blackout, st_bbox(crop_bbox))
 blackout_nad <- blackout |> 
   st_transform(crs=st_crs('NAD83'))
 ```
-Since we'll be plotting with both blackout data and the original light data, the crs for the light data must also be changed.
-```{r}
-light_0207_nad <- st_transform(light_0207, crs = st_crs('NAD83'))
-light_0216_nad <- st_transform(light_0207, crs = st_crs('NAD83'))
-```
 
-
-Plot light for February 07, 2021
-```{r}
-plot(light_0207_nad)
-```
-
-```{r}
-tm_shape(blackout) + 
-  tm_polygons() + 
-  tm_shape(light_0207_nad) +
-  tm_raster(breaks = c(0, 1000, 2000, 3000, 4000, 5000))
-```
-```{r}
-plot(light_0216_nad)
-```
-```{r}
-tm_shape(blackout) + 
-  tm_polygons() + 
-  tm_shape(light_0216_nad) +
-  tm_raster(breaks = c(0, 8000, 12000, 16000, 20000, 24000, 30000))
+Create map of the blackout
+```{r} 
+tm_shape(blackout_nad) + 
+  tm_raster(palette = c('black', 
+                        '#58544C',
+                        'darkgrey', 
+                        'grey', 
+                        'lightgrey',
+                        'white'),
+            breaks = c(0, 500, 800, 1200, 2400, 4800, 10000),
+            title = "Luminence differences nW cm-2sr-1") +
+  tm_title("Houston Blackout Map February 2021")
 
 ```
 
@@ -244,8 +295,6 @@ highway_buffer <- st_buffer(highways, dist = 200)
 ```
 
 ```{r}
-# WHY WOULD I WANT TO ST_UNION?
-# ALL OF MY VALUES BECOME INVALID WHEN I USE st_union
 # combine geometry of highway buffer
 exc_highway <- st_union(highway_buffer)
 ```
@@ -255,14 +304,22 @@ exc_highway <- st_union(highway_buffer)
 unique(st_is_valid(exc_highway))
 ```
 
-
 ```{r}
-# crs must be the same for st_difference to work
-# change crs of blackout data
+# change crs of blackout data to match exc_highway crs
 blackout <- st_transform(blackout, crs = st_crs('EPSG:3857'))
 
-true_blackout <- st_difference(blackout, exc_highway)
+# change the shape to a vector 
+# st_blackout <- st_as_sf(blackout)
+
+true_blackout <- st_disjoint(st_blackout, exc_highway)
+
+# true_blackout <- rast(true_blackout)
 ```
+```{r}
+tm_shape(true_blackout) +
+  tm_raster()
+```
+
 # Identify the number of homes likely impacted by blackouts
 ```{r}
 # change crs to match
@@ -272,7 +329,7 @@ blackedout_homes <- st_within(true_blackout, homes)
 ```
 
 ```{r}
-tm_shape(true_blackout) +
+tm_shape(blackedout_homes) +
   tm_polygons()
 ```
 
