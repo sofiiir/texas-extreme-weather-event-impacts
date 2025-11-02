@@ -16,8 +16,6 @@ library(tmap) # map making
 library(sf)
 library(stars) # raster handling
 library(terra) # raster handling
-library(kableExtra) # table creation
-
 ```
 Reading in Nasa's Worldview data that will be used to analyze the effects of the power outages in Texas. February 7, 2021 and February 16, 2021 are the two dates analyzed as they provide clear skies for better analysis.
 ```{r}
@@ -136,8 +134,10 @@ for (i in seq_along(df_name)){
 
 #### Change CRS for texas
 ```{r}
-# change crs of texas and texas income
-texas <- st_transform(texas, crs = st_crs(light1_0207))
+# change crs to texas crs
+highways <- st_transform(highways, crs = st_crs('EPSG:3083'))
+houses <- st_transform(houses, crs = st_crs('EPSG:3083'))
+texas <- st_transform(texas, crs = st_crs('EPSG:3083'))
 ```
 
 
@@ -146,11 +146,6 @@ texas <- st_transform(texas, crs = st_crs(light1_0207))
 # combine the data with st_mosaic since data has different extents
 light_0207 <- st_mosaic(light1_0207, light2_0207)
 light_0216 <- st_mosaic(light3_0216, light4_0216)
-```
-### Combine Texas geometry with socioeconomic data
-```{r}
-# left_joining since we do not need all of the information in the texas df
-texas_socioeconomics <- left_join(texas_income, texas, by = "GEOID")
 ```
 
 # Create original maps 
@@ -203,7 +198,9 @@ lum_0207 <- tm_shape(light_0207) +
                         'white'),
             breaks = c(0, 400, 800, 1200, 2400, 4800, 10000),
             title = "Luminence nW cm-2sr-1") +
-  tm_title("Pre-Blackout Houston Luminence Map February 7, 2021")
+  tm_title("Pre-Blackout Houston Luminence Map February 7, 2021") +
+  tm_compass(position = tm_pos_out("right", "bottom")) +
+  tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
 
 
@@ -219,9 +216,11 @@ lum_0216 <- tm_shape(light_0216) +
                         'grey', 
                         'lightgrey',
                         'white'),
-            breaks = c(0, 300, 800, 1500, 3000, 6000, 20000),
+            breaks = c(0, 400, 800, 1200, 2400, 4800, 20000),
             title = "Luminence nW cm-2sr-1") +
-  tm_title("Houston Luminence Map for Blackout February 16, 2021")
+  tm_title("Houston Luminence Map for Blackout February 16, 2021") +
+  tm_compass(position = tm_pos_out("right", "bottom")) +
+  tm_scalebar(position = tm_pos_out("right", "bottom")) 
 ```
 ```{r}
 tmap_arrange(lum_0207, lum_0216)
@@ -245,30 +244,17 @@ blackout <- light_0207 - light_0216
 blackout[blackout < 200 ] <- NA
 ```
 
-### vectorize the blackout mask
-```{r}
-# blackout <- blackout |> 
-#   st_as_sf() 
-# st_make_valid() if anything is invalid
-```
-
-### Check if there are any gemetries that are invalid
-```{r}
-# check if any of the geometries are invalid
-# unique(st_is_valid(blackout))
-```
-
 
 ### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
 ```{r}
 # st_transform
-blackout_nad <- blackout |> 
-  st_transform(crs=st_crs('NAD83'))
+blackout <- blackout |> 
+  st_transform(crs=st_crs('EPSG:3083'))
 ```
 
 Create map of the blackout
 ```{r} 
-tm_shape(blackout_nad) + 
+tm_shape(blackout) + 
   tm_raster(palette = c('black', 
                         '#58544C',
                         'darkgrey', 
@@ -277,17 +263,22 @@ tm_shape(blackout_nad) +
                         'white'),
             breaks = c(0, 500, 800, 1200, 2400, 4800, 10000),
             title = "Luminence differences nW cm-2sr-1") +
-  tm_title("Houston Blackout Map February 2021")
+  tm_title("Houston Blackout Areas February 2021") +
+   tm_compass(position = tm_pos_out("right", "bottom")) +
+  tm_scalebar(position = tm_pos_out("right", "bottom"))
 
 ```
 
 
 # Exclude highways from the cropped blackout mask
 ```{r}
-# look at the units for the highways
+# look at the units for the highways, the analysis is based on meters
 st_crs(highways, parameters = TRUE)$units_gdal
-highways <- st_transform(highways, crs = st_crs('EPSG:3857'))
-st_crs(highways, parameters = TRUE)$units_gdal
+# highways <- st_transform(highways, crs = st_crs('EPSG:3083'))
+# st_crs(highways, parameters = TRUE)$units_gdal
+
+# combine geometry of highway buffer and highway itself
+highways <- st_union(highways)
 
 # identify areas within 200m of all highways
 highway_buffer <- st_buffer(highways, dist = 200)
@@ -295,42 +286,93 @@ highway_buffer <- st_buffer(highways, dist = 200)
 ```
 
 ```{r}
-# combine geometry of highway buffer
-exc_highway <- st_union(highway_buffer)
-```
-
-```{r}
 # make sure geometry is valid 
-unique(st_is_valid(exc_highway))
+unique(st_is_valid(highway_buffer))
+```
+```{r}
+# make sure crs match before finding the difference
+st_crs(highway_buffer)==st_crs(blackout)
 ```
 
 ```{r}
 # change crs of blackout data to match exc_highway crs
-blackout <- st_transform(blackout, crs = st_crs('EPSG:3857'))
+# blackout <- st_transform(blackout, crs = st_crs('EPSG:3083'))
+# highway_buffer <- st_transform(highway_buffer, crs = st_crs('EPSG:3083'))
 
-# change the shape to a vector 
-# st_blackout <- st_as_sf(blackout)
+# change blackout data to a vector 
+st_blackout <- st_as_sf(blackout)
 
-true_blackout <- st_disjoint(st_blackout, exc_highway)
-
-# true_blackout <- rast(true_blackout)
+# find true blackout areas that are further than 200 meters from a highway
+true_blackout <- st_difference(st_blackout, highway_buffer)
 ```
 ```{r}
+# map blackout areas more than 200 meters from homes and highways for reference 
 tm_shape(true_blackout) +
-  tm_raster()
+  tm_polygons() +
+tm_shape(highway_buffer) +
+  tm_lines(col = '#ED6A5A') +
+  tm_add_legend(title = "Roads",
+                 type = "line",
+                 labels = "highway") +
+   tm_title("Houston Blackout Areas February 2021") +
+   tm_compass(position = tm_pos_out("right", "bottom")) +
+   tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
 
 # Identify the number of homes likely impacted by blackouts
 ```{r}
-# change crs to match
-homes <- st_transform(houses, crs = st_crs('EPSG:3857'))
-                         
-blackedout_homes <- st_within(true_blackout, homes)
+# make sure crs match 
+st_crs(true_blackout) == st_crs(houses)
+
+# find number of homes that intersect with the blackout data                         
+blackedout_homes <- st_intersection(true_blackout, houses)
+```
+Approximately 169,469 homes were likely impacted by the blackouts in Houston. This analysis is based on any homes that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts.
+```{r}
+tm_shape(blackedout_homes) +
+  tm_polygons() +
+  tm_shape(highway_buffer) +
+  tm_lines(col = '#ED6A5A') +
+  tm_add_legend(title = "Roads",
+                 type = "line",
+                 labels = "highway") +
+   tm_title("Homes in Houston's Blackout Areas February 2021") +
+   tm_compass(position = tm_pos_out("right", "bottom")) +
+   tm_scalebar(position = tm_pos_out("right", "bottom"))
+```
+### Combine Texas geometry with socioeconomic data
+```{r}
+# left_joining since we do not need all of the information in the texas df
+texas_socioeconomics <- full_join(texas, texas_income, by = "GEOID")
+```
+
+Based on the metadata median household income in the past 12 months is column 'B19013e1'.
+```{r}
+#| eval: false
+
+# make sure that geometry is maintained 
+st_crs(texas_socioeconomics)
+
+# check if there are any values that are not NA
+unique(texas_socioeconomics$B19013e1)
+
+st_crs(texas_socioeconomics) == st_crs(blackedout_homes)
+```
+```{r}
+# subset data only data that overlaps with blackedout homes
+blackedout_socioecon <- st_intersects(texas_socioeconomics, blackedout_homes)
+
+# subset data for those that are not overlapping at all
+notblackedout_socioecon <- st_disjoint(texas_socioeconomics, blackedout_homes)
 ```
 
 ```{r}
-tm_shape(blackedout_homes) +
-  tm_polygons()
+unique(blackedout_socioecon$B19013e1)
+```
+
+```{r}
+# ggplot(blackedout_socioecon, aes(B19013e1))+
+#   geom_histogram()
 ```
 
 
