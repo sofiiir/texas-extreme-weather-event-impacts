@@ -219,8 +219,8 @@ lum_0216 <- tm_shape(light_0216) +
             breaks = c(0, 400, 800, 1200, 2400, 4800, 20000),
             title = "Luminence nW cm-2sr-1") +
   tm_title("Houston Luminence Map for Blackout February 16, 2021") +
-  tm_compass(position = tm_pos_out("right", "bottom")) +
-  tm_scalebar(position = tm_pos_out("right", "bottom")) 
+   tm_compass(position = tm_pos_out("right", "bottom")) +
+   tm_scalebar(position = tm_pos_out("right", "bottom")) 
 ```
 ```{r}
 tmap_arrange(lum_0207, lum_0216)
