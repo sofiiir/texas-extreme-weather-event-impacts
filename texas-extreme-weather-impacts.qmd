@@ -201,6 +201,11 @@ lum_0207 <- tm_shape(light_0207) +
   tm_title("Pre-Blackout Houston Luminence Map February 7, 2021") +
   tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
+
+tmap_save(lum_0207, 
+          here::here("maps", "lum_0207.png"),
+          height = 8, 
+          width = 14)
 ```
 
 
@@ -221,6 +226,11 @@ lum_0216 <- tm_shape(light_0216) +
   tm_title("Houston Luminence Map for Blackout February 16, 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
    tm_scalebar(position = tm_pos_out("right", "bottom")) 
+
+tmap_save(lum_0216, 
+          here::here("maps", "lum_0216.png"),
+          height = 8, 
+          width = 14)
 ```
 ```{r}
 tmap_arrange(lum_0207, lum_0216)
@@ -254,7 +264,7 @@ blackout <- blackout |>
 
 Create map of the blackout
 ```{r} 
-tm_shape(blackout) + 
+blackout_map <- tm_shape(blackout) + 
   tm_raster(palette = c('black', 
                         '#58544C',
                         'darkgrey', 
@@ -267,6 +277,12 @@ tm_shape(blackout) +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
 
+tmap_save(blackout_map, 
+          here::here("maps", "blackout_map.png"),
+          height = 8, 
+          width = 14)
+
+blackout_map
 ```
 
 
@@ -341,38 +357,80 @@ tm_shape(blackedout_homes) +
    tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
 ### Combine Texas geometry with socioeconomic data
+
 ```{r}
-# left_joining since we do not need all of the information in the texas df
-texas_socioeconomics <- full_join(texas, texas_income, by = "GEOID")
+# change the geometry of the texas income layer to make the texas layer
+texas_income <- texas_income |> 
+  rename("GEOID_Data" = "GEOID")
+```
+
+
+```{r}
+# join the texas data with texas income data
+texas_socioeconomics <- full_join(texas, texas_income, by = "GEOID_Data")
 ```
 
 Based on the metadata median household income in the past 12 months is column 'B19013e1'.
 ```{r}
-#| eval: false
+#| output: false
 
-# make sure that geometry is maintained 
-st_crs(texas_socioeconomics)
-
-# check if there are any values that are not NA
-unique(texas_socioeconomics$B19013e1)
-
+# make sure crs are the same for all of the data
 st_crs(texas_socioeconomics) == st_crs(blackedout_homes)
+
+# change mismatched crs to match 
+texas_socioeconomics <- st_transform(texas_socioeconomics, 
+                                     crs = st_crs('EPSG:3083'))
+
 ```
 ```{r}
+#| output: false
+
+# remove data frames that are no longer necessary
+rm(texas)
+rm(light1_0207)
+rm(light2_0207)
+rm(light3_0216)
+rm(light4_0216)
+```
+
+```{r}
+#
+all_homes <- houses |> 
+  mutate(blackout = osm_id %in% blackedout_homes$osm_id)
+  
 # subset data only data that overlaps with blackedout homes
-blackedout_socioecon <- st_intersects(texas_socioeconomics, blackedout_homes)
+blackedout_socioecon <- st_intersection(texas_socioeconomics, all_homes) 
 
-# subset data for those that are not overlapping at all
-notblackedout_socioecon <- st_disjoint(texas_socioeconomics, blackedout_homes)
+# select only necessary columns
+all_blackedout_socioecon <- blackedout_socioecon[, c("GEOID_Data", "TRACTCE", "B19013e1", "blackout")]
+```
+
+
+```{r}
+# subset data for those homes that are not overlapping with the blackedout homes
+# notblackedout <- st_disjoint(houses, blackedout_homes)
+
+```
+
+
+
+```{r}
+# unique(blackedout_socioecon$B19013e1)
+# unique(notblackedout_socioecon$B19013e1)
 ```
 
 ```{r}
-unique(blackedout_socioecon$B19013e1)
+ ggplot(all_blackedout_socioecon, aes(B19013e1))+
+  geom_histogram(color = 'Black') +
+  labs(x = "Income",
+       y = "Frequency",
+       title = "Income Level for Homes that Experienced Blackouts")+
+  theme_minimal() +
+  facet_wrap(~blackout)
 ```
-
 ```{r}
-# ggplot(blackedout_socioecon, aes(B19013e1))+
-#   geom_histogram()
+#ggplot(notblackedout_socioecon, aes(B19013e1))+
+  # geom_histogram()
 ```
 
 
