@@ -391,10 +391,11 @@ rm(light1_0207)
 rm(light2_0207)
 rm(light3_0216)
 rm(light4_0216)
+rm(blackout)
 ```
 
 ```{r}
-#
+# add a true false column for all homes on whether they experienced a blackout
 all_homes <- houses |> 
   mutate(blackout = osm_id %in% blackedout_homes$osm_id)
   
@@ -421,21 +422,30 @@ all_blackedout_socioecon <- blackedout_socioecon[, c("GEOID_Data", "TRACTCE", "B
 
 ```{r}
  ggplot(all_blackedout_socioecon, aes(B19013e1))+
-  geom_histogram(color = 'Black') +
+  geom_histogram(color = 'Black', fill = "#F4F1BB") +
   labs(x = "Income",
        y = "Frequency",
        title = "Income Level for Homes that Experienced Blackouts")+
   theme_minimal() +
-  facet_wrap(~blackout)
+  facet_wrap(~blackout) # unique on blackout 
 ```
 ```{r}
-#ggplot(notblackedout_socioecon, aes(B19013e1))+
-  # geom_histogram()
+ggplot(all_blackedout_socioecon, aes(y = B19013e1))+
+  geom_boxplot(color = 'Black') +
+  labs(x = "Income",
+       y = "Income",
+       title = "Median Income Level for Homes and Their Blackout Experience")+
+  theme_minimal() +
+  facet_wrap(~blackout, strip.position = "bottom") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 
 # Refrences
 ```{r}
-
+# [https://ladsweb.modaps.eosdis.nasa.gov/](https://ladsweb.modaps.eosdis.nasa.gov/)
+  
 ```
 
