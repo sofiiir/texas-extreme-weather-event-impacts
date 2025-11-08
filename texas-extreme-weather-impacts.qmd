@@ -373,11 +373,11 @@ texas_socioeconomics <- left_join(texas, texas_income, by = "GEOID_Data")
 
 ```{r}
 # use st_bbox
-bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(light_0207))
+bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(texas_socioeconomics))
 
 # transform texas_socioeconomic data so we can crop by bbox
-texas_socioeconomics <- st_transform(texas_socioeconomics, 
-                                     crs = st_crs(light_0207))
+# texas_socioeconomics <- st_transform(texas_socioeconomics, 
+#                                      crs = st_crs(light_0207))
 
 # crop light data on 02/07
 texas_socioeconomics <- st_crop(texas_socioeconomics, bbox)
@@ -452,6 +452,7 @@ unique(census$blackedout)
 # unique(blackedout_socioecon$B19013e1)
 # unique(notblackedout_socioecon$B19013e1)
 ```
+
 
 ```{r}
  ggplot(census, aes(B19013e1))+
