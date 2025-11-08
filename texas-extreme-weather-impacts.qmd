@@ -6,7 +6,7 @@ date: "November 8, 2025"
 message: false
 warning: false
 ---
-
+# Homes in Houston Affected by February 2021 Electricity Outages
 ```{r}
 #| output: false
 
@@ -17,6 +17,7 @@ library(sf)
 library(stars) # raster handling
 library(terra) # raster handling
 ```
+## Read in the data 
 Reading in Nasa's Worldview data that will be used to analyze the effects of the power outages in Texas. February 7, 2021 and February 16, 2021 are the two dates analyzed as they provide clear skies for better analysis.
 ```{r}
 # read in the NOAA data
@@ -36,7 +37,7 @@ road_query <- "SELECT * FROM gis_osm_roads_free_1 WHERE fclass='motorway'"
 highways <- st_read(here::here("data/gis_osm_roads_free_1.gpkg"), query = road_query)
 
 ```
-Part of this analysis will quantify the number of houses that experienced blackouts.
+Part of this analysis will quantify the number of houses that experienced blackouts.Read in homes data. 
 ```{r}
 #| output: false
 
@@ -54,7 +55,7 @@ houses <- st_read(here::here("data/gis_osm_buildings_a_free_1.gpkg"), query = qu
 
 st_layers(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
 ```
-Read in the socioeconomic data 
+Read in the socioeconomic data and Texas socioeconomic data.
 ```{r}
 #| output: false
 
@@ -68,17 +69,20 @@ texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), l
 
 ## Check CRS for all of the data
 
+```{r}
+match_crs <- function()
+```
+
 
 #### Making sure the CRS are the same for all of the datasets
 Set the CRS to equal each other in a boolean to make sure they are all the same
 ```{r}
-# Check that the same CRS are used for all of the data
+# Check that the same CRS are used for all of the lights data
 if (st_crs(light1_0207)==st_crs(light2_0207)){
   print("it's a match!")
 }else {
     warning("still not a match")
 }
-
 
 if (st_crs(light1_0207)==st_crs(light3_0216)){
   print("it's a match!")
@@ -92,53 +96,8 @@ if (st_crs(light1_0207)==st_crs(light4_0216)){
     warning("still not a match")
 }
 
-if (st_crs(light1_0207)==st_crs(houses)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-
-if (st_crs(light1_0207)==st_crs(highways)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-
-if (st_crs(light1_0207)==st_crs(texas)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-
-if (st_crs(light1_0207)==st_crs(texas_income)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-```
-Make a for loop that checks that all of the CRS match for all of the data. 
-```{r}
-
-# WHY IS IT RUNNING SO MANY TIMES? HOW CAN I RUN STARS THROUGH THIS FOR LOOP?
-df_name <- c(highways, houses)
-
-for (i in seq_along(df_name)){
-  
-  if (st_crs(light1_0207)==st_crs(df_name)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-}
 ```
 
-#### Change CRS for texas
-```{r}
-# change crs to texas crs
-highways <- st_transform(highways, crs = st_crs('EPSG:3083'))
-houses <- st_transform(houses, crs = st_crs('EPSG:3083'))
-# texas <- st_transform(texas, crs = st_crs('EPSG:3083'))
-```
 
 
 # Merge data for the entirety of the days 
@@ -148,7 +107,7 @@ light_0207 <- st_mosaic(light1_0207, light2_0207)
 light_0216 <- st_mosaic(light3_0216, light4_0216)
 ```
 
-# Create original maps 
+# Create original luminence maps 
 
 ### vectorize the light data
 ```{r}
@@ -283,6 +242,14 @@ tmap_save(blackout_map,
           width = 14)
 
 blackout_map
+```
+
+
+#### Change CRS for texas
+```{r}
+# change crs to texas crs
+highways <- st_transform(highways, crs = st_crs('EPSG:3083'))
+houses <- st_transform(houses, crs = st_crs('EPSG:3083'))
 ```
 
 
