@@ -70,7 +70,20 @@ texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), l
 ## Check CRS for all of the data
 
 ```{r}
-match_crs <- function()
+match_crs <- function(df1, df2){
+  if (st_crs(df1)==st_crs(df2)){
+  print("it's a match!")
+}else {
+    warning("still not a match")
+}}
+
+texas_crs_trans <- function(df1){
+  
+}
+```
+
+```{r}
+match_crs(light1_0207, light2_0207)
 ```
 
 
@@ -129,25 +142,26 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 
 ### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
 ```{r}
-# st_bbox are not layers they are type bbox so we need to use st_as_sf to vectorize it
-# use st_bbox
+# set the dimensions for bbox
 crop_bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(light_0207))
 ```
 
 
 ```{r}
-# crop light data on 02/07
+# crop light data on 02/07 with the bbox
 light_0207 <- st_crop(light_0207, crop_bbox)
 
-# crop light data on 02/16
+# crop light data on 02/16 with the bbox
 light_0216 <- st_crop(light_0216, crop_bbox)
 ```
-Plot light for February 07, 2021
+### Plot light for February 07, 2021
 ```{r}
+# initial plotting exploration
 plot(light_0207)
 ```
 
 ```{r}
+# plot february 7th 2021 luminence using tmaps
 lum_0207 <- tm_shape(light_0207) +
   tm_raster(palette = c('black', 
                         '#58544C',
@@ -161,18 +175,21 @@ lum_0207 <- tm_shape(light_0207) +
   tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
 
+# save map for better visual quality
 tmap_save(lum_0207, 
           here::here("maps", "lum_0207.png"),
           height = 8, 
           width = 14)
 ```
 
-
+### Plot light for February 16, 2021
 ```{r}
+# initial plotting exploration
 plot(light_0216)
 ```
 
 ```{r}
+# plot february 16, 2021 luminence
 lum_0216 <- tm_shape(light_0216) +
   tm_raster(palette = c('black', 
                         '#58544C',
@@ -186,12 +203,14 @@ lum_0216 <- tm_shape(light_0216) +
    tm_compass(position = tm_pos_out("right", "bottom")) +
    tm_scalebar(position = tm_pos_out("right", "bottom")) 
 
+# save map for better visual quality
 tmap_save(lum_0216, 
           here::here("maps", "lum_0216.png"),
           height = 8, 
           width = 14)
 ```
 ```{r}
+# print out maps next to each other 
 tmap_arrange(lum_0207, lum_0216)
 ```
 
