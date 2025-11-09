@@ -2,7 +2,7 @@
 title: "texas-extreme-weather"
 format: html
 author: "Sofia Rodas"
-date: "November 8, 2025"
+date: "November 10, 2025"
 message: false
 warning: false
 ---
@@ -67,7 +67,7 @@ texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), l
 
 ```
 
-## Check CRS for all of the data
+## Functions to Check and Change CRS 
 
 ```{r}
 match_crs <- function(df1, df2){
@@ -77,43 +77,19 @@ match_crs <- function(df1, df2){
     warning("still not a match")
 }}
 
-texas_crs_trans <- function(df1){
-  
+texas_crs_change <- function(df1){
+  df1 <-  st_transform(df1, crs=st_crs('EPSG:3083'))
 }
 ```
 
+## Check CRS of lights data frames
 ```{r}
 match_crs(light1_0207, light2_0207)
+match_crs(light3_0216, light4_0216)
 ```
-
-
-#### Making sure the CRS are the same for all of the datasets
-Set the CRS to equal each other in a boolean to make sure they are all the same
-```{r}
-# Check that the same CRS are used for all of the lights data
-if (st_crs(light1_0207)==st_crs(light2_0207)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-
-if (st_crs(light1_0207)==st_crs(light3_0216)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-
-if (st_crs(light1_0207)==st_crs(light4_0216)){
-  print("it's a match!")
-}else {
-    warning("still not a match")
-}
-
-```
-
-
 
 # Merge data for the entirety of the days 
+We use st_mosaic in this instance since the extents are different.
 ```{r}
 # combine the data with st_mosaic since data has different extents
 light_0207 <- st_mosaic(light1_0207, light2_0207)
@@ -121,17 +97,6 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 ```
 
 # Create original luminence maps 
-
-### vectorize the light data
-```{r}
-# light_0207 <- light_0207 |> 
-#   st_as_sf() 
-# 
-# light_0216 <- light_0216 |> 
-#   st_as_sf()
-
-# st_make_valid() if anything is invalid
-```
 
 ### Check if there are any gemetries that are invalid
 ```{r}
@@ -145,7 +110,6 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 # set the dimensions for bbox
 crop_bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(light_0207))
 ```
-
 
 ```{r}
 # crop light data on 02/07 with the bbox
@@ -263,7 +227,6 @@ tmap_save(blackout_map,
 blackout_map
 ```
 
-
 #### Change CRS for texas
 ```{r}
 # change crs to texas crs
@@ -379,9 +342,12 @@ st_crs(texas_socioeconomics) == st_crs(blackedout_homes)
 # change mismatched crs to match 
 texas_socioeconomics <- st_transform(texas_socioeconomics, 
                                      crs = st_crs('EPSG:3083'))
+# texas_crs_change(texas_socioeconomics)
 
 ```
-
+```{r}
+st_crs(blackedout_homes)
+```
 
 ```{r}
 #| output: false
@@ -412,15 +378,15 @@ census <- texas_socioeconomics |>
   mutate(blackedout =  texas_socioeconomics$GEOID_Data %in% census_blackedout$GEOID_Data)
 ```
 
+### Map displaying census tracts that experienced blackouts
 ```{r}
-# true_bo_census <- all_blackedout_socioecon |> 
-#   filter(blackedout == TRUE) 
-# 
 tm_shape(census) +
    tm_polygons() +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
-  tm_polygons(fill = 'hotpink') +
-  tm_graticules()
+  tm_polygons(fill = '#ED6A5A') +
+  tm_title("Houston Area Census Tracts that Experienced Blackouts 02-2021") +
+   tm_compass(position = tm_pos_out("right", "bottom")) +
+  tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
 
 ```{r}
@@ -461,11 +427,15 @@ ggplot(census, aes(y = B19013e1))+
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 ```
+#### Identify how many census tracts did experience blackouts in the Houston area and how many did not
 ```{r}
 
 table(census$blackedout)
 ```
 
+# Map and data anlysis
+
+According to our remote sensing analysis of difference in luminence in Houston Texas between February 7th and February 16th 2021, most census tracts in Houston experienced blackouts. To be exact 755 census tracts experienced blackouts while only 357 did not experience blackouts. Though the expectation is that homes with higher incomes would experience less blackouts the histogram and boxplot show it was a universal experience in Houston regardless of income. 
 
 # Refrences
 ```{r}
