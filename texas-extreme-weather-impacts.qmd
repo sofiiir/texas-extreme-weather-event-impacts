@@ -1,5 +1,5 @@
 ---
-title: "texas-extreme-weather"
+title: "Houston blackouts February 2021"
 format: html
 author: "Sofia Rodas"
 date: "November 10, 2025"
@@ -67,7 +67,7 @@ texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), l
 
 ```
 
-## Functions to Check and Change CRS 
+## Functions to Check CRS 
 
 ```{r}
 match_crs <- function(df1, df2){
@@ -76,10 +76,6 @@ match_crs <- function(df1, df2){
 }else {
     warning("still not a match")
 }}
-
-texas_crs_change <- function(df1){
-  df1 <-  st_transform(df1, crs=st_crs('EPSG:3083'))
-}
 ```
 
 ## Check CRS of lights data frames
@@ -107,7 +103,7 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 
 ### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
 ```{r}
-# set the dimensions for bbox
+# set the dimensions for a bbox for the Houston area
 crop_bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(light_0207))
 ```
 
@@ -180,26 +176,18 @@ tmap_arrange(lum_0207, lum_0216)
 
 # Create blackout mask
 ### Find the change in night lights intensity (presumably) caused by the storm
+Calculate blackout data based on the difference in luminence before and after the blackout
 ```{r}
-# difference between the two dates boolean
-# diff_light <- (light_0207 - light_0216) > 200
-
-# assign na based on where the value is false for the boolean
-# diff_light[diff_light == FALSE] <- NA
-```
-
-```{r}
-# blackout data 
+# blackout calculation
 blackout <- light_0207 - light_0216 
 
-# assign NA to any value less than 
+# assign NA to any value less than 200
 blackout[blackout < 200 ] <- NA
 ```
 
 
 ### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
 ```{r}
-# st_transform
 blackout <- blackout |> 
   st_transform(crs=st_crs('EPSG:3083'))
 ```
@@ -239,13 +227,11 @@ houses <- st_transform(houses, crs = st_crs('EPSG:3083'))
 ```{r}
 # look at the units for the highways, the analysis is based on meters
 st_crs(highways, parameters = TRUE)$units_gdal
-# highways <- st_transform(highways, crs = st_crs('EPSG:3083'))
-# st_crs(highways, parameters = TRUE)$units_gdal
 
-# combine geometry of highway buffer and highway itself
+# union the highways data 
 highways <- st_union(highways)
 
-# identify areas within 200m of all highways
+# identify areas within 200m of all highways into a buffer
 highway_buffer <- st_buffer(highways, dist = 200)
 
 ```
@@ -256,44 +242,34 @@ unique(st_is_valid(highway_buffer))
 ```
 ```{r}
 # make sure crs match before finding the difference
-st_crs(highway_buffer)==st_crs(blackout)
+match_crs(highway_buffer, blackout)
 ```
 
 ```{r}
-# change crs of blackout data to match exc_highway crs
-# blackout <- st_transform(blackout, crs = st_crs('EPSG:3083'))
-# highway_buffer <- st_transform(highway_buffer, crs = st_crs('EPSG:3083'))
-
 # change blackout data to a vector 
 st_blackout <- st_as_sf(blackout)
 
+# make sure geometry is valid 
+unique(st_is_valid(st_blackout))
+```
+
+Find true blackout areas that are further than 200 meters from a highway
+```{r}
 # find true blackout areas that are further than 200 meters from a highway
 true_blackout <- st_difference(st_blackout, highway_buffer)
-```
-```{r}
-# map blackout areas more than 200 meters from homes and highways for reference 
-tm_shape(true_blackout) +
-  tm_polygons() +
-tm_shape(highway_buffer) +
-  tm_lines(col = '#ED6A5A') +
-  tm_add_legend(title = "Roads",
-                 type = "line",
-                 labels = "highway") +
-   tm_title("Houston Blackout Areas February 2021") +
-   tm_compass(position = tm_pos_out("right", "bottom")) +
-   tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
 
 # Identify the number of homes likely impacted by blackouts
 ```{r}
 # make sure crs match 
-st_crs(true_blackout) == st_crs(houses)
+match_crs(true_blackout, houses)
 
 # find number of homes that intersect with the blackout data                         
 blackedout_homes <- st_intersection(true_blackout, houses)
 ```
-Approximately 169,469 homes were likely impacted by the blackouts in Houston. This analysis is based on any homes that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts.
+Approximately 169,469 homes were likely impacted by the blackouts in Houston. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .
 ```{r}
+
 tm_shape(blackedout_homes) +
   tm_polygons() +
   tm_shape(highway_buffer) +
@@ -301,7 +277,7 @@ tm_shape(blackedout_homes) +
   tm_add_legend(title = "Roads",
                  type = "line",
                  labels = "highway") +
-   tm_title("Homes in Houston's Blackout Areas February 2021") +
+   tm_title("Houston Homes in Blackout Areas February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
    tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
@@ -313,20 +289,14 @@ texas_income <- texas_income |>
   rename("GEOID_Data" = "GEOID")
 ```
 
-
 ```{r}
 # join the texas data with texas income data
 texas_socioeconomics <- left_join(texas, texas_income, by = "GEOID_Data")
 ```
 
-
 ```{r}
 # use st_bbox
 bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(texas_socioeconomics))
-
-# transform texas_socioeconomic data so we can crop by bbox
-# texas_socioeconomics <- st_transform(texas_socioeconomics, 
-#                                      crs = st_crs(light_0207))
 
 # crop light data on 02/07
 texas_socioeconomics <- st_crop(texas_socioeconomics, bbox)
@@ -337,16 +307,12 @@ texas_socioeconomics <- st_crop(texas_socioeconomics, bbox)
 #| output: false
 
 # make sure crs are the same for all of the data
-st_crs(texas_socioeconomics) == st_crs(blackedout_homes)
+match_crs(texas_socioeconomics, blackedout_homes)
 
 # change mismatched crs to match 
 texas_socioeconomics <- st_transform(texas_socioeconomics, 
                                      crs = st_crs('EPSG:3083'))
-# texas_crs_change(texas_socioeconomics)
 
-```
-```{r}
-st_crs(blackedout_homes)
 ```
 
 ```{r}
