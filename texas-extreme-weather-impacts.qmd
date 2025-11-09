@@ -1,5 +1,5 @@
 ---
-title: "Houston blackouts February 2021"
+title: "Houston Blackouts February 2021"
 format: html
 author: "Sofia Rodas"
 date: "November 10, 2025"
@@ -18,7 +18,7 @@ library(stars) # raster handling
 library(terra) # raster handling
 ```
 ## Read in the data 
-Reading in Nasa's Worldview data that will be used to analyze the effects of the power outages in Texas. February 7, 2021 and February 16, 2021 are the two dates analyzed as they provide clear skies for better analysis.
+Read in Nasa's Worldview data that will be used to analyze the effects of the power outages in Texas. February 7, 2021 and February 16, 2021 are the two dates analyzed as they provide clear skies for better analysis.
 ```{r}
 # read in the NOAA data
 light1_0207 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021038.h08v05.001.2021039064328.tif"))
@@ -26,7 +26,7 @@ light2_0207 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021038.h08v06.001.2
 light3_0216 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021047.h08v05.001.2021048091106.tif"))
 light4_0216 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021047.h08v06.001.2021048091105.tif"))
 ```
-Road data in Texas is necessary to take account of light pollution that comes from roads. 
+Read in road data in Texas is necessary to take account of light pollution that comes from roads. 
 ```{r}
 #| output: false
 
@@ -53,22 +53,22 @@ houses <- st_read(here::here("data/gis_osm_buildings_a_free_1.gpkg"), query = qu
 ```{r}
 #| output: false
 
+# look at what layers are necessary for this analysis
 st_layers(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
 ```
-Read in the socioeconomic data and Texas socioeconomic data.
+Read in the Texas geomoetry data and Texas socioeconomic data.
 ```{r}
 #| output: false
 
-# socioeconomic geometry data read in
+# read in socioeconomic geometry data 
 texas <- st_read(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), layer = "ACS_2019_5YR_TRACT_48_TEXAS")
 
-# socioeconomic income data read in
+# read in socioeconomic income data
 texas_income <- read_sf(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"), layer = "X19_INCOME")
 
 ```
 
-## Functions to Check CRS 
-
+## Function to Check CRS 
 ```{r}
 match_crs <- function(df1, df2){
   if (st_crs(df1)==st_crs(df2)){
@@ -93,18 +93,14 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 ```
 
 # Create original luminence maps 
-
-### Check if there are any gemetries that are invalid
-```{r}
-# check if any of the geometries are invalid
-# unique(st_is_valid(light_0207))
-# unique(st_is_valid(light_0216))
-```
-
 ### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
 ```{r}
 # set the dimensions for a bbox for the Houston area
-crop_bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(light_0207))
+crop_bbox <- st_bbox(c(xmin = -96.5, 
+                       ymin = 29, 
+                       xmax = -94.5, 
+                       ymax= 30.5), 
+                     crs = st_crs(light_0207))
 ```
 
 ```{r}
@@ -282,37 +278,38 @@ tm_shape(blackedout_homes) +
    tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
 ### Combine Texas geometry with socioeconomic data
-
 ```{r}
-# change the geometry of the texas income layer to make the texas layer
+# change the geometry column name to match between layers
 texas_income <- texas_income |> 
   rename("GEOID_Data" = "GEOID")
 ```
 
 ```{r}
-# join the texas data with texas income data
+# join the Texas geometry with Texas income data
 texas_socioeconomics <- left_join(texas, texas_income, by = "GEOID_Data")
 ```
-
+### Crop for only Houston 
 ```{r}
-# use st_bbox
-bbox <- st_bbox(c(xmin = -96.5, ymin = 29, xmax = -94.5, ymax= 30.5), crs = st_crs(texas_socioeconomics))
+# make a bbox for Houston in the Texas socioeconomic data crs
+bbox <- st_bbox(c(xmin = -96.5, 
+                  ymin = 29, 
+                  xmax = -94.5, 
+                  ymax= 30.5), 
+                crs = st_crs(texas_socioeconomics))
 
-# crop light data on 02/07
+# crop Texas socioeconomic data to Houston
 texas_socioeconomics <- st_crop(texas_socioeconomics, bbox)
 ```
-
 
 ```{r}
 #| output: false
 
-# make sure crs are the same for all of the data
+# make sure crs are the same for the socioeconomic data and blackedout homes
 match_crs(texas_socioeconomics, blackedout_homes)
 
 # change mismatched crs to match 
 texas_socioeconomics <- st_transform(texas_socioeconomics, 
                                      crs = st_crs('EPSG:3083'))
-
 ```
 
 ```{r}
@@ -326,18 +323,19 @@ rm(light3_0216)
 rm(light4_0216)
 ```
 
-Based on the metadata median household income in the past 12 months is column 'B19013e1'.
+#### Create a dataframe that includes socioeconomic data for the only the homes that experienced blackouts
 ```{r}
-# intersect socioeconomic data and homes data
+# intersect socioeconomic data and homes data 
 blackedout_socioecon <- st_filter(texas_socioeconomics, blackedout_homes) |> 
   mutate(blackedout = TRUE)
+```
 
+Based on the metadata median household income in the past 12 months is column 'B19013e1'. Subset the data frame to only include necessary columns. 
+```{r}
 # select only necessary columns
 census_blackedout <- blackedout_socioecon[, c("GEOID_Data", "TRACTCE", "B19013e1", "blackedout")]
 ```
-
-
-
+#### Create a data frame that identifies whether the home did or did not experience a blackout
 ```{r}
 # add a true/false column for all homes on whether they experienced a blackout
 census <- texas_socioeconomics |> 
@@ -346,7 +344,7 @@ census <- texas_socioeconomics |>
 
 ### Map displaying census tracts that experienced blackouts
 ```{r}
-tm_shape(census) +
+tm_shape(census) + 
    tm_polygons() +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
   tm_polygons(fill = '#ED6A5A') +
@@ -354,25 +352,9 @@ tm_shape(census) +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
 ```
-
+### Visualize income for areas that experienced blackouts and those that did not experience blackouts
 ```{r}
-# subset data for those homes that are not overlapping with the blackedout homes
-# notblackedout <- st_disjoint(houses, blackedout_homes)
-
-```
-
-```{r}
-unique(census$blackedout)
-```
-
-
-```{r}
-# unique(blackedout_socioecon$B19013e1)
-# unique(notblackedout_socioecon$B19013e1)
-```
-
-
-```{r}
+# create histograms of incomes between those that experienced blackout and those that did not
  ggplot(census, aes(B19013e1))+
   geom_histogram(color = 'Black', fill = "#F4F1BB") +
   labs(x = "Income",
@@ -382,6 +364,7 @@ unique(census$blackedout)
   facet_wrap(~blackedout) # unique on blackout 
 ```
 ```{r}
+# create boxplots of incomes between those that experienced blackout and those that did not
 ggplot(census, aes(y = B19013e1))+
   geom_boxplot(width = 0.5) +
   labs(x = "Income",
@@ -393,13 +376,12 @@ ggplot(census, aes(y = B19013e1))+
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())
 ```
-#### Identify how many census tracts did experience blackouts in the Houston area and how many did not
+#### Identify how many census tracts did experience blackouts in the Houston area and how many did not experience blackouts in the Houston area.
 ```{r}
-
 table(census$blackedout)
 ```
 
-# Map and data anlysis
+# Map and data analysis
 
 According to our remote sensing analysis of difference in luminence in Houston Texas between February 7th and February 16th 2021, most census tracts in Houston experienced blackouts. To be exact 755 census tracts experienced blackouts while only 357 did not experience blackouts. Though the expectation is that homes with higher incomes would experience less blackouts the histogram and boxplot show it was a universal experience in Houston regardless of income. 
 
