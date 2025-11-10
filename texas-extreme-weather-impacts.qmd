@@ -20,6 +20,8 @@ library(terra) # raster handling
 ## Read in the data 
 Read in Nasa's Worldview data that will be used to analyze the effects of the power outages in Texas. February 7, 2021 and February 16, 2021 are the two dates analyzed as they provide clear skies for better analysis.
 ```{r}
+#| output: false
+
 # read in the NOAA data
 light1_0207 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021038.h08v05.001.2021039064328.tif"))
 light2_0207 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021038.h08v06.001.2021039064329.tif"))
@@ -93,7 +95,7 @@ light_0216 <- st_mosaic(light3_0216, light4_0216)
 ```
 
 # Create original luminence maps 
-### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
+#### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
 ```{r}
 # set the dimensions for a bbox for the Houston area
 crop_bbox <- st_bbox(c(xmin = -96.5, 
@@ -182,14 +184,15 @@ blackout[blackout < 200 ] <- NA
 ```
 
 
-### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area)
+### Re-project the cropped blackout dataset to EPSG:3083 (NAD83 / Texas Centric Albers Equal Area) and Map the Blackedout Areas
 ```{r}
 blackout <- blackout |> 
   st_transform(crs=st_crs('EPSG:3083'))
 ```
 
-Create map of the blackout
+
 ```{r} 
+# create map of the blackout
 blackout_map <- tm_shape(blackout) + 
   tm_raster(palette = c('black', 
                         '#58544C',
@@ -211,19 +214,23 @@ tmap_save(blackout_map,
 blackout_map
 ```
 
-#### Change CRS for texas
+
+
+# Exclude highways from the cropped blackout mask
+#### Change CRS for highways and homes to match the blackout maks
 ```{r}
 # change crs to texas crs
 highways <- st_transform(highways, crs = st_crs('EPSG:3083'))
 houses <- st_transform(houses, crs = st_crs('EPSG:3083'))
 ```
 
-
-# Exclude highways from the cropped blackout mask
 ```{r}
 # look at the units for the highways, the analysis is based on meters
 st_crs(highways, parameters = TRUE)$units_gdal
+```
 
+
+```{r}
 # union the highways data 
 highways <- st_union(highways)
 
@@ -234,7 +241,11 @@ highway_buffer <- st_buffer(highways, dist = 200)
 
 ```{r}
 # make sure geometry is valid 
-unique(st_is_valid(highway_buffer))
+if (unique(st_is_valid(highway_buffer)) == TRUE){
+  print("Vectors are valid!")
+}else {
+    warning("Vectors not all valid")
+}
 ```
 ```{r}
 # make sure crs match before finding the difference
@@ -423,10 +434,10 @@ table(census$blackedout)
 According to our remote sensing analysis of difference in luminence in Houston Texas between February 7th and February 16th 2021, most census tracts in Houston experienced blackouts. To be exact 755 census tracts experienced blackouts while only 357 did not experience blackouts. Though the expectation is that homes with higher incomes would experience less blackouts the histogram and boxplot show it was a universal experience in Houston regardless of income. 
 
 # Refrences
-[American Community Survey](https://www.census.gov/programs-surveys/acs)
+Census Data.[American Community Survey](https://www.census.gov/programs-surveys/acs)
 
-[Level-1 and Atmosphere Archive & Distribution System
+NASA LAADS Data.[Level-1 and Atmosphere Archive & Distribution System
 Distributed Active Archive Center
 Version: 3.1.18.2](https://ladsweb.modaps.eosdis.nasa.gov/)
 
-[OpenStreetMap (OSM). Obtained through Geofabrik](https://www.geofabrik.de/data/shapefiles.html)
+OpenStreetMap (OSM). Obtained through [Geofabrik](https://www.geofabrik.de/data/shapefiles.html)
