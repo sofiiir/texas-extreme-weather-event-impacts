@@ -1,6 +1,6 @@
 ---
 title: "Houston Blackouts February 2021"
-format: html
+format: docx
 author: "Sofia Rodas"
 date: "November 10, 2025"
 message: false
