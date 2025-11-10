@@ -22,7 +22,7 @@ Read in Nasa's Worldview data that will be used to analyze the effects of the po
 ```{r}
 #| output: false
 
-# read in the NOAA data
+# read in the NASA data
 light1_0207 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021038.h08v05.001.2021039064328.tif"))
 light2_0207 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021038.h08v06.001.2021039064329.tif"))
 light3_0216 <- read_stars(here::here("data/VNP46A1/VNP46A1.A2021047.h08v05.001.2021048091106.tif"))
@@ -58,7 +58,7 @@ houses <- st_read(here::here("data/gis_osm_buildings_a_free_1.gpkg"), query = qu
 # look at what layers are necessary for this analysis
 st_layers(here::here("data", "ACS_2019_5YR_TRACT_48_TEXAS.gdb"))
 ```
-Read in the Texas geomoetry data and Texas socioeconomic data.
+Read in the Texas census tract geomoetry data and Texas census tract socioeconomic data.
 ```{r}
 #| output: false
 
@@ -89,12 +89,12 @@ match_crs(light3_0216, light4_0216)
 # Merge data for the entirety of the days 
 We use st_mosaic in this instance since the extents are different.
 ```{r}
-# combine the data with st_mosaic since data has different extents
+# combine the data for each date
 light_0207 <- st_mosaic(light1_0207, light2_0207)
 light_0216 <- st_mosaic(light3_0216, light4_0216)
 ```
 
-# Create original luminence maps 
+# Create original luminance maps 
 #### Crop (spatially subset) the blackout mask to the Houston area as defined by the following coordinates: (-96.5, 29), (-96.5, 30.5), (-94.5, 30.5), (-94.5, 29)
 ```{r}
 # set the dimensions for a bbox for the Houston area
@@ -127,9 +127,9 @@ lum_0207 <- tm_shape(light_0207) +
                         'grey', 
                         'lightgrey', 
                         'white'),
-            breaks = c(0, 400, 800, 1200, 2400, 4800, 10000),
-            title = "Luminence nW cm-2sr-1") +
-  tm_title("Pre-Blackout Houston Luminence Map February 7, 2021") +
+            breaks = c(0, 400, 800, 1200, 2400, 4800, 20000),
+            title = "Luminance nW cm-2sr-1") +
+  tm_title("Pre-Blackout Houston Luminance Map February 7, 2021") +
   tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
 
@@ -147,7 +147,7 @@ plot(light_0216)
 ```
 
 ```{r}
-# plot february 16, 2021 luminence
+# plot february 16, 2021 luminance
 lum_0216 <- tm_shape(light_0216) +
   tm_raster(palette = c('black', 
                         '#58544C',
@@ -156,8 +156,8 @@ lum_0216 <- tm_shape(light_0216) +
                         'lightgrey',
                         'white'),
             breaks = c(0, 400, 800, 1200, 2400, 4800, 20000),
-            title = "Luminence nW cm-2sr-1") +
-  tm_title("Houston Luminence Map for Blackout February 16, 2021") +
+            title = "Luminance nW cm-2sr-1") +
+  tm_title("Houston Luminance Map for Blackout February 16, 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
    tm_scalebar(position = tm_pos_out("right", "bottom")) 
 
@@ -174,7 +174,7 @@ tmap_arrange(lum_0207, lum_0216)
 
 # Create blackout mask
 ### Find the change in night lights intensity (presumably) caused by the storm
-Calculate blackout data based on the difference in luminence before and after the blackout
+Calculate blackout data based on the difference in luminance before and after the blackout
 ```{r}
 # blackout calculation
 blackout <- light_0207 - light_0216 
@@ -201,7 +201,7 @@ blackout_map <- tm_shape(blackout) +
                         'lightgrey',
                         'white'),
             breaks = c(0, 500, 800, 1200, 2400, 4800, 10000),
-            title = "Luminence differences nW cm-2sr-1") +
+            title = "Luminance differences nW cm-2sr-1") +
   tm_title("Houston Blackout Areas February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
@@ -248,7 +248,7 @@ if (unique(st_is_valid(highway_buffer)) == TRUE){
 }
 ```
 ```{r}
-# make sure crs match before finding the difference
+# verify crs match
 match_crs(highway_buffer, blackout)
 ```
 
@@ -278,7 +278,7 @@ match_crs(true_blackout, houses)
 # find number of homes that intersect with the blackout data            
 blackedout_homes <- st_intersection(true_blackout, houses)
 ```
-Approximately 169,469 homes were likely impacted by the blackouts in Houston according to this remote geo-spatial analysis. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .
+Approximately **169,469 homes** were likely impacted by the blackouts in Houston according to this remote geo-spatial analysis. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis. On the other hand, some homes that were not living where luminence exists regularly and experienced a blackout may not have been counted.
 ```{r}
 # map homes that experience blackouts with visuals of the roads that were buffered
 homes_w_road_buff <- tm_shape(blackedout_homes) +
@@ -288,7 +288,7 @@ homes_w_road_buff <- tm_shape(blackedout_homes) +
   tm_add_legend(title = "Roads",
                  type = "line",
                  labels = "highway") +
-   tm_title("Houston Homes in Blackout Areas February 2021") +
+   tm_title("Houston Homes in Blackout Areas and Roads February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
    tm_scalebar(position = tm_pos_out("right", "bottom"))
 
@@ -325,11 +325,17 @@ bbox <- st_bbox(c(xmin = -96.5,
 texas_socioeconomics <- st_crop(texas_socioeconomics, bbox)
 ```
 
+
 ```{r}
-#| output: false
+#| warning: true
 
 # make sure crs are the same for the socioeconomic data and blackedout homes
 match_crs(texas_socioeconomics, blackedout_homes)
+```
+
+
+```{r}
+#| output: false
 
 # change mismatched crs to match 
 texas_socioeconomics <- st_transform(texas_socioeconomics, 
@@ -347,19 +353,19 @@ rm(light3_0216)
 rm(light4_0216)
 ```
 
-#### Create a dataframe that includes socioeconomic data for the only the homes that experienced blackouts
+#### Create a dataframe that includes socioeconomic data for only the homes that experienced blackouts
 ```{r}
 # intersect socioeconomic data and homes data 
 blackedout_socioecon <- st_filter(texas_socioeconomics, blackedout_homes) |> 
   mutate(blackedout = TRUE)
 ```
 
-Based on the metadata median household income in the past 12 months is column 'B19013e1'. Subset the data frame to only include necessary columns. 
+Based on the metadata, median household income in the past 12 months is column 'B19013e1'. Subset the data frame to only include necessary columns. 
 ```{r}
 # select only necessary columns
 census_blackedout <- blackedout_socioecon[, c("GEOID_Data", "TRACTCE", "B19013e1", "blackedout")]
 ```
-#### Create a data frame that identifies whether the home did or did not experience a blackout
+#### Create a data frame that identifies whether the homes did or did not experience a blackout
 ```{r}
 # add a true/false column for all homes on whether they experienced a blackout
 census <- texas_socioeconomics |> 
@@ -372,7 +378,7 @@ census_map <- tm_shape(census) +
    tm_polygons() +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
   tm_polygons(fill = '#ED6A5A') +
-  tm_title("Houston Area Census Tracts that Experienced Blackouts 02-2021") +
+  tm_title("Houston Area Census Tracts that Experienced Blackouts February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
 
@@ -389,7 +395,7 @@ census_map
 ```{r}
 #| fig-cap: "True characterizes data for census tracts that experienced blackouts. False characterizes data for census tracts that did not experience blackouts."
 
-# create histograms of incomes between those that experienced blackout and those that did not
+# create histograms of incomes between those census tracts that experienced blackouts and those that did not
  ggplot(census, aes(B19013e1))+
   geom_histogram(color = 'Black', fill = "#F6CA83") +
   labs(x = "Income",
@@ -404,7 +410,9 @@ census_map
 ```
 
 ```{r}
-# create boxplots of incomes between those that experienced blackout and those that did not
+#| fig-cap: "True characterizes data for census tracts that experienced blackouts. False characterizes data for census tracts that did not experience blackouts."
+
+# create boxplots of incomes between those census tracts that experienced blackouts and those that did not
 ggplot(census, aes(y = B19013e1))+
   geom_boxplot(width = 0.5) +
   labs(x = "Income",
@@ -423,7 +431,7 @@ table(census$blackedout)
 
 # Map and data analysis
 
-According to our remote sensing analysis of difference in luminence in Houston Texas between February 7th and February 16th 2021, most census tracts in Houston experienced blackouts. To be exact 755 census tracts experienced blackouts while only 357 did not experience blackouts. Though the expectation is that homes with higher incomes would experience less blackouts the histogram and boxplot show it was a universal experience in Houston regardless of income. 
+According to our remote sensing analysis of difference in luminance in Houston, Texas between February 7th and February 16th 2021, most census tracts in Houston experienced blackouts. To be exact, 755 census tracts experienced blackouts, while only 357 did not experience blackouts. Though the expectation is that homes with higher incomes would experience less blackouts, the histogram and boxplot show it was a universal experience in Houston regardless of income. There are inherent limitations in geo-spatial data computations. The analysis does not allow for a true count of homes that have experienced blackouts, as some homes may exist in areas without an amount of luminance perceptible to satellites. These homes would be left out of any counts of the true span of the blackout if they did experience outages. Similarly, homes may have experienced no blackouts but may have been in a vicinity with many other homes losing power and counted, nonetheless. Overall, this analysis provides insight into the vast number of homes affected by electricity outages but should not be used to give accurate statistics on the incident. 
 
 # Refrences
 Census Data.[American Community Survey](https://www.census.gov/programs-surveys/acs)
