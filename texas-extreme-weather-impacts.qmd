@@ -265,8 +265,8 @@ blackedout_homes <- st_intersection(true_blackout, houses)
 ```
 Approximately 169,469 homes were likely impacted by the blackouts in Houston. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .
 ```{r}
-
-tm_shape(blackedout_homes) +
+# map homes that experience blackouts with visuals of the roads that were buffered
+homes_w_road_buff <- tm_shape(blackedout_homes) +
   tm_polygons() +
   tm_shape(highway_buffer) +
   tm_lines(col = '#ED6A5A') +
@@ -276,6 +276,15 @@ tm_shape(blackedout_homes) +
    tm_title("Houston Homes in Blackout Areas February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
    tm_scalebar(position = tm_pos_out("right", "bottom"))
+
+# save map for better visual quality
+tmap_save(homes_w_road_buff, 
+          here::here("maps", "homes_w_road_buff.png"),
+          height = 8, 
+          width = 14)
+
+# print map 
+homes_w_road_buff
 ```
 ### Combine Texas geometry with socioeconomic data
 ```{r}
@@ -344,15 +353,33 @@ census <- texas_socioeconomics |>
 
 ### Map displaying census tracts that experienced blackouts
 ```{r}
-tm_shape(census) + 
+census_map <- tm_shape(census) + 
    tm_polygons() +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
   tm_polygons(fill = '#ED6A5A') +
   tm_title("Houston Area Census Tracts that Experienced Blackouts 02-2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
+
+# save map for better visual quality
+tmap_save(census_map, 
+          here::here("maps", "census_map.png"),
+          height = 8, 
+          width = 14)
+
+# print census tract map
+census_map
 ```
 ### Visualize income for areas that experienced blackouts and those that did not experience blackouts
+
+```{r}
+# census <- if (census$blackedout == TRUE){
+#   mutate(blackedout_yn = "Blackout")
+# } else {
+#   mutate(blackedout_yn = "No Blackout")
+# }
+```
+
 ```{r}
 # create histograms of incomes between those that experienced blackout and those that did not
  ggplot(census, aes(B19013e1))+
@@ -361,8 +388,18 @@ tm_shape(census) +
        y = "Frequency",
        title = "Income Level for Homes that Experienced Blackouts")+
   theme_minimal() +
-  facet_wrap(~blackedout) # unique on blackout 
+  facet_wrap(~ blackedout, 
+             ncol = 2, 
+             scales = "free_x",
+            # labeller = as_labeller(c(True = "Blackout",
+            #                          False = "No blackout")),
+    strip.position = "bottom") + # unique on blackout 
+  theme(strip.placement = "outside")
 ```
+```{r}
+unique(census$blackedout)
+```
+
 ```{r}
 # create boxplots of incomes between those that experienced blackout and those that did not
 ggplot(census, aes(y = B19013e1))+
@@ -386,8 +423,10 @@ table(census$blackedout)
 According to our remote sensing analysis of difference in luminence in Houston Texas between February 7th and February 16th 2021, most census tracts in Houston experienced blackouts. To be exact 755 census tracts experienced blackouts while only 357 did not experience blackouts. Though the expectation is that homes with higher incomes would experience less blackouts the histogram and boxplot show it was a universal experience in Houston regardless of income. 
 
 # Refrences
-```{r}
-# [https://ladsweb.modaps.eosdis.nasa.gov/](https://ladsweb.modaps.eosdis.nasa.gov/)
-  
-```
+[American Community Survey](https://www.census.gov/programs-surveys/acs)
 
+[Level-1 and Atmosphere Archive & Distribution System
+Distributed Active Archive Center
+Version: 3.1.18.2](https://ladsweb.modaps.eosdis.nasa.gov/)
+
+[OpenStreetMap (OSM). Obtained through Geofabrik](https://www.geofabrik.de/data/shapefiles.html)
