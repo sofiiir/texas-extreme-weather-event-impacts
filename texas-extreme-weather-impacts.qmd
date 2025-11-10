@@ -244,7 +244,7 @@ highway_buffer <- st_buffer(highways, dist = 200)
 if (unique(st_is_valid(highway_buffer)) == TRUE){
   print("Vectors are valid!")
 }else {
-    warning("Vectors not all valid")
+    warning("Not all vectors valid")
 }
 ```
 ```{r}
@@ -257,7 +257,11 @@ match_crs(highway_buffer, blackout)
 st_blackout <- st_as_sf(blackout)
 
 # make sure geometry is valid 
-unique(st_is_valid(st_blackout))
+if (unique(st_is_valid(st_blackout)) == TRUE){
+  print("Vectors are valid!")
+}else {
+    warning("Not all vectors valid")
+}
 ```
 
 Find true blackout areas that are further than 200 meters from a highway
@@ -271,10 +275,10 @@ true_blackout <- st_difference(st_blackout, highway_buffer)
 # make sure crs match 
 match_crs(true_blackout, houses)
 
-# find number of homes that intersect with the blackout data                         
+# find number of homes that intersect with the blackout data            
 blackedout_homes <- st_intersection(true_blackout, houses)
 ```
-Approximately 169,469 homes were likely impacted by the blackouts in Houston. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .
+Approximately 169,469 homes were likely impacted by the blackouts in Houston according to this remote geo-spatial analysis. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .
 ```{r}
 # map homes that experience blackouts with visuals of the roads that were buffered
 homes_w_road_buff <- tm_shape(blackedout_homes) +

@@ -376,13 +376,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># make sure geometry is valid </span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co"># unique(st_is_valid(highway_buffer))</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">unique</span>(<span class="fu">st_is_valid</span>(highway_buffer)) <span class="sc">==</span> <span class="cn">TRUE</span>){</span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Vectors are valid!"</span>)</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>}<span class="cf">else</span> {</span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(<span class="st">"Vectors not all valid"</span>)</span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">unique</span>(<span class="fu">st_is_valid</span>(highway_buffer)) <span class="sc">==</span> <span class="cn">TRUE</span>){</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Vectors are valid!"</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>}<span class="cf">else</span> {</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(<span class="st">"Not all vectors valid"</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "Vectors are valid!"</code></pre>
 </div>
@@ -399,9 +397,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>st_blackout <span class="ot">&lt;-</span> <span class="fu">st_as_sf</span>(blackout)</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="co"># make sure geometry is valid </span></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(<span class="fu">st_is_valid</span>(st_blackout))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">unique</span>(<span class="fu">st_is_valid</span>(st_blackout)) <span class="sc">==</span> <span class="cn">TRUE</span>){</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="st">"Vectors are valid!"</span>)</span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>}<span class="cf">else</span> {</span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">warning</span>(<span class="st">"Not all vectors valid"</span>)</span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] TRUE</code></pre>
+<pre><code>[1] "Vectors are valid!"</code></pre>
 </div>
 </div>
 <p>Find true blackout areas that are further than 200 meters from a highway</p>
@@ -419,10 +421,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] "it's a match!"</code></pre>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># find number of homes that intersect with the blackout data                         </span></span>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co"># find number of homes that intersect with the blackout data            </span></span>
 <span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>blackedout_homes <span class="ot">&lt;-</span> <span class="fu">st_intersection</span>(true_blackout, houses)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<p>Approximately 169,469 homes were likely impacted by the blackouts in Houston. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .</p>
+<p>Approximately 169,469 homes were likely impacted by the blackouts in Houston according to this remote geospatial analysis. This analysis is based on any home that intersected with the blackout areas. Some of the homes in the intersection may not have experienced blackouts but were included due to the limitations of the data and constraints of geo-spatial analysis .</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># map homes that experience blackouts with visuals of the roads that were buffered</span></span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>homes_w_road_buff <span class="ot">&lt;-</span> <span class="fu">tm_shape</span>(blackedout_homes) <span class="sc">+</span></span>
