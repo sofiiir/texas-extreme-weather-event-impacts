@@ -1,4 +1,4 @@
-# Houston Blackouts February 2021
+# Houston Blackouts Analysis February 2021
 #### Author : Sofia Rodas
 
 This repository analyzes the blackouts that occurred in Houston Texas in February 2021. Geospatial remote sensing data was employed to calculate estimations of the far reaching implications of the freezes that caused life threatening blackouts in Houston Texas. 
