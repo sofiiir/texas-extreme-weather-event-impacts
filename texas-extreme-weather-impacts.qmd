@@ -386,15 +386,6 @@ tmap_save(census_map,
 census_map
 ```
 ### Visualize income for areas that experienced blackouts and those that did not experience blackouts
-
-```{r}
-# census <- if (census$blackedout == TRUE){
-#   mutate(blackedout_yn = "Blackout")
-# } else {
-#   mutate(blackedout_yn = "No Blackout")
-# }
-```
-
 ```{r}
 # create histograms of incomes between those that experienced blackout and those that did not
  ggplot(census, aes(B19013e1))+
@@ -406,13 +397,8 @@ census_map
   facet_wrap(~ blackedout, 
              ncol = 2, 
              scales = "free_x",
-            # labeller = as_labeller(c(True = "Blackout",
-            #                          False = "No blackout")),
-    strip.position = "bottom") + # unique on blackout 
+             strip.position = "bottom") + # unique on blackout 
   theme(strip.placement = "outside")
-```
-```{r}
-unique(census$blackedout)
 ```
 
 ```{r}
