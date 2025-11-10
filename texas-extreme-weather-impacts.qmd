@@ -387,9 +387,11 @@ census_map
 ```
 ### Visualize income for areas that experienced blackouts and those that did not experience blackouts
 ```{r}
+#| fig-cap: "True characterizes data for census tracts that experienced blackouts. False characterizes data for census tracts that did not experience blackouts."
+
 # create histograms of incomes between those that experienced blackout and those that did not
  ggplot(census, aes(B19013e1))+
-  geom_histogram(color = 'Black', fill = "#F4F1BB") +
+  geom_histogram(color = 'Black', fill = "#F6CA83") +
   labs(x = "Income",
        y = "Frequency",
        title = "Income Level for Homes that Experienced Blackouts")+
