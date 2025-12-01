@@ -376,7 +376,10 @@ census <- texas_socioeconomics |>
 ### Map displaying census tracts that experienced blackouts
 ```{r}
 census_map <- tm_shape(census) + 
-   tm_polygons() +
+  tm_polygons() +
+  tm_add_legend(labels = c("Tracts That Did Not Lose Power"),
+                 fill = "grey",
+              type = 'polygons') +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
   tm_polygons(fill = '#ED6A5A') +
   tm_add_legend(labels = c("Tracts That Lost Power"),
@@ -404,7 +407,7 @@ census_map
   geom_histogram(color = 'Black', fill = "#F6CA83") +
   labs(x = "Income - USD ($)",
        y = "Frequency",
-       title = "Income Level for Homes that Experienced Blackouts")+
+       title = "USD($) Income Level for Homes that Experienced Blackouts")+
   theme_minimal() +
   facet_wrap(~ blackedout, 
              ncol = 2, 
@@ -421,7 +424,7 @@ ggplot(census, aes(y = B19013e1))+
   geom_boxplot(width = 0.5) +
   labs(x = "Income",
        y = "Income - USD ($)",
-       title = "Median Income Level for Homes and Their Blackout Experience") +
+       title = "Median USD($) Income Level for Homes and Their Blackout Experience") +
   theme_minimal() +
   facet_wrap(~blackedout, strip.position = "bottom") +
   theme(axis.title.x=element_blank(),
