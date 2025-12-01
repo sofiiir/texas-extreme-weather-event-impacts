@@ -379,7 +379,9 @@ census_map <- tm_shape(census) +
    tm_polygons() +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
   tm_polygons(fill = '#ED6A5A') +
-  tm_add_legend(labels = blackedout_socioecon$blackedout) + 
+  tm_add_legend(labels = c("Tracts That Lost Power"),
+              fill = c('#ED6A5A'),
+              type = 'polygons') + 
   tm_title("Houston Area Census Tracts that Experienced Blackouts February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
