@@ -1,6 +1,6 @@
 ---
 title: "Houston Blackouts February 2021"
-format: docx
+format: html
 author: "Sofia Rodas"
 date: "November 10, 2025"
 message: false
@@ -193,7 +193,8 @@ blackout <- blackout |>
 
 ```{r} 
 # create map of the blackout
-blackout_map <- tm_shape(blackout) + 
+blackout_map <- tm_basemap("Esri.OceanBasemap")+
+  tm_shape(blackout) + 
   tm_raster(palette = c('black', 
                         '#58544C',
                         'darkgrey', 
@@ -378,6 +379,7 @@ census_map <- tm_shape(census) +
    tm_polygons() +
   tm_shape(blackedout_socioecon, is.main = TRUE) +
   tm_polygons(fill = '#ED6A5A') +
+  tm_add_legend(labels = blackedout_socioecon$blackedout) + 
   tm_title("Houston Area Census Tracts that Experienced Blackouts February 2021") +
    tm_compass(position = tm_pos_out("right", "bottom")) +
   tm_scalebar(position = tm_pos_out("right", "bottom"))
@@ -398,7 +400,7 @@ census_map
 # create histograms of incomes between those census tracts that experienced blackouts and those that did not
  ggplot(census, aes(B19013e1))+
   geom_histogram(color = 'Black', fill = "#F6CA83") +
-  labs(x = "Income",
+  labs(x = "Income - USD ($)",
        y = "Frequency",
        title = "Income Level for Homes that Experienced Blackouts")+
   theme_minimal() +
@@ -416,7 +418,7 @@ census_map
 ggplot(census, aes(y = B19013e1))+
   geom_boxplot(width = 0.5) +
   labs(x = "Income",
-       y = "Income",
+       y = "Income - USD ($)",
        title = "Median Income Level for Homes and Their Blackout Experience") +
   theme_minimal() +
   facet_wrap(~blackedout, strip.position = "bottom") +
